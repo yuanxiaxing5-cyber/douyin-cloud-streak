@@ -37,8 +37,11 @@
 
 ### 前置要求
 
-- Docker 20.10+ 和 Docker Compose v2
-- 国内网络环境建议配置 Docker 镜像加速器
+- **Windows / macOS**：安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（自带 Docker Engine 和 Docker Compose v2，安装后启动即可）
+- **Linux**：安装 Docker Engine 20.10+ 和 Docker Compose v2 插件
+- 国内网络环境建议配置 Docker 镜像加速器（见下方说明）
+
+> 💡 **Windows 用户提示**：安装 Docker Desktop 后，在开始菜单启动它，等待左下角显示 "Engine running" 后，在项目目录打开 PowerShell 执行下方命令即可。
 
 ### 部署步骤
 
@@ -60,13 +63,39 @@ environment:
 
 3. **构建并启动**
 
+在项目目录打开终端（Windows 用 PowerShell，Mac/Linux 用 Terminal），执行：
+
 ```bash
-# 国内网络加加速参数构建（首次约 3-8 分钟）
+# 国内网络加加速参数构建（首次约 3-8 分钟，需下载 Playwright 浏览器）
 docker compose build --build-arg USE_CN_MIRROR=1
 
-# 后台启动
+# 后台启动容器
 docker compose up -d
 ```
+
+> 💡 **Docker Desktop 用户**：构建和启动过程可以在 Docker Desktop 界面看到容器状态和日志，启动成功后容器状态为 "Running"。
+
+### 国内 Docker 镜像加速（可选但推荐）
+
+如果构建时拉取基础镜像慢或超时，配置 Docker 镜像加速器：
+
+**Docker Desktop（Windows/Mac）：**
+1. 打开 Docker Desktop → 右上角设置（齿轮图标）→ Docker Engine
+2. 在 JSON 配置中添加 `registry-mirrors`：
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://mirror.baidubce.com"
+  ]
+}
+```
+
+3. 点击 "Apply & restart" 重启 Docker Desktop
+
+**Linux：**
+编辑 `/etc/docker/daemon.json`（没有就新建），写入上面的配置后执行 `systemctl restart docker`。
 
 4. **访问网页端**
 
