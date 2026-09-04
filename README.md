@@ -1,6 +1,14 @@
 # Douyin Cloud Streak · 抖音云端自动续火花
 
-> 每天定时自动给抖音好友发消息，维持「火花 / 连续聊天天数」。支持网页端管理、多账号、Docker 一键部署。
+> 每天定时自动给抖音好友发消息，维持「火花 / 连续聊天天数」。Docker 一键部署，网页端管理，无需手动安装任何依赖。
+
+## ⚠️ 部署方式说明（重要）
+
+**本项目唯一推荐部署方式：Docker 容器化部署。**
+
+Docker 镜像已内置全部运行环境（Python、Playwright、Chromium 浏览器、所有依赖库），**用户不需要在本地手动安装 Python、Playwright、浏览器或任何依赖**。只需安装 Docker Desktop，执行两条命令即可运行。
+
+> ❌ **不要在本地手动执行 `pip install`、`playwright install`、`python app.py` 等命令**，这些是开发调试用的，普通用户直接用 Docker 部署即可。
 
 ## 项目简介
 
@@ -9,9 +17,8 @@
 - 网页端图形化管理（好友勾选、发送时间/内容设置、日志查看）
 - 手机扫码登录，无需手动提取 Cookie
 - 多账号隔离管理
-- 支持 Docker 容器化部署，也支持本地直接运行
 
-## 技术栈
+## 技术栈（全部封装在 Docker 镜像内，无需本地安装）
 
 | 层级 | 技术 |
 |------|------|
@@ -33,15 +40,19 @@
 - ✅ **反风控设计**：单工作线程串行执行、全局浏览器并发上限、随机浮动时间、限流关键词检测
 - ✅ **失败自动补发**：发送失败的好友 45 分钟后自动补发一次
 
-## 快速开始（Docker 部署，推荐）
+## 快速开始（Docker 部署，唯一推荐方式）
 
-### 前置要求
+> ✅ **此方式无需手动安装 Python、Playwright、浏览器或任何依赖库**，全部已封装在 Docker 镜像中。只需安装 Docker Desktop，执行两条命令即可运行。
+
+### 前置要求（只需装一个 Docker Desktop）
 
 - **Windows / macOS**：安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（自带 Docker Engine 和 Docker Compose v2，安装后启动即可）
 - **Linux**：安装 Docker Engine 20.10+ 和 Docker Compose v2 插件
 - 国内网络环境建议配置 Docker 镜像加速器（见下方说明）
 
 > 💡 **Windows 用户提示**：安装 Docker Desktop 后，在开始菜单启动它，等待左下角显示 "Engine running" 后，在项目目录打开 PowerShell 执行下方命令即可。
+>
+> ❌ **不需要**：安装 Python、安装 Playwright、下载浏览器、配置任何环境变量。
 
 ### 部署步骤
 
@@ -113,14 +124,19 @@ docker compose up -d
 
 进入「定时」页面 → 设置每日发送时间、随机浮动分钟、发送内容 → 保存。
 
-## 本地直接运行（非 Docker）
+## 进阶：本地直接运行（不推荐，仅用于开发调试）
 
-### 前置要求
+> ⚠️ **警告：此方式仅用于开发者本地调试，普通用户请使用上方 Docker 部署方式。**
+> 
+> 此方式需要手动安装 Python、依赖库、Playwright 浏览器，环境配置复杂，容易出错。普通用户直接用 Docker 即可，无需安装任何东西。
+
+### 前置要求（开发者）
 
 - Python 3.11+
 - Windows / Linux / macOS
+- 熟悉 Python 环境配置
 
-### 运行步骤
+### 运行步骤（开发者调试用）
 
 ```bash
 # 1. 克隆项目
@@ -130,7 +146,7 @@ cd douyin-cloud-streak
 # 2. 安装依赖（国内建议用清华源）
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 3. 安装 Playwright 浏览器
+# 3. 安装 Playwright 浏览器（必须，否则无法运行）
 playwright install chromium
 
 # 4. 设置访问口令（可选，默认无口令）
