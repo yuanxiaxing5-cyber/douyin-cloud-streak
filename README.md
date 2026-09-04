@@ -161,6 +161,72 @@ python app.py
 
 访问 `http://localhost:8000`。
 
+## Windows 本地静默运行（低内存推荐）
+
+> 💡 **适用场景**：Windows 用户，内存紧张（如 8GB 以下），不想用 Docker（WSL2 约占 2GB 内存）。
+>
+> 此方式内存占用仅约 **80MB**，完全静默运行，无控制台窗口，支持开机自启动。
+
+### 1. 安装 Python
+
+下载安装 [Python 3.12](https://www.python.org/downloads/)，安装时勾选 **"Add Python to PATH"**。
+
+验证安装：
+```powershell
+python --version
+```
+
+### 2. 创建虚拟环境并安装依赖
+
+在项目目录打开 PowerShell：
+
+```powershell
+cd douyin-cloud-streak
+python -m venv venv
+.\venv\Scripts\pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+```
+
+### 3. 安装 Playwright 浏览器
+
+```powershell
+$env:PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright"
+.\venv\Scripts\playwright install chromium
+```
+
+### 4. 配置访问口令
+
+编辑 `start_silent.vbs`，修改口令：
+```vbscript
+WshShell.Environment("Process")("AUTH_TOKEN") = "你的口令"
+```
+
+### 5. 静默启动
+
+双击 `start_silent.vbs`，完全无窗口闪现。
+
+验证：浏览器打开 `http://localhost:8000`，能访问即成功。
+
+### 6. 配置开机自启动（可选）
+
+用 Windows 任务计划程序实现登录后自动静默启动：
+
+```powershell
+schtasks /create /tn "DouyinCloudStreak" /tr "wscript.exe \"项目完整路径\start_silent.vbs\"" /sc onlogon /rl highest /f
+```
+
+或手动操作：任务计划程序 → 创建基本任务 → 触发器"登录时" → 操作"启动程序" → 选择 `start_silent.vbs`。
+
+### 内存对比
+
+| 运行方式 | 内存占用 |
+|----------|----------|
+| Docker Desktop + WSL2 | ~1,900 MB |
+| **本地静默运行** | **~80 MB** |
+
+### 停止服务
+
+任务管理器 → 详细信息 → 结束 `python.exe` 进程。
+
 ## 配置说明
 
 ### 环境变量
