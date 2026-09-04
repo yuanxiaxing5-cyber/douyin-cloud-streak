@@ -1389,9 +1389,11 @@
         const selectedFriendCount = computed(() => contacts.value.filter(c => c.selected).length);
         const sparkFriendCount = computed(() => contacts.value.filter(c => (c.spark_days || 0) > 0).length);
 
+        const showAllContacts = ref(false);
         const filteredContacts = computed(() => {
-          // 带火花的好友按天数从高到低排在最前
-          const sorted = [...contacts.value].sort((a, b) => (b.spark_days || 0) - (a.spark_days || 0));
+          // 默认只显示有私信会话的好友，隐藏关注列表/已删除会话残留
+          const base = showAllContacts.value ? contacts.value : contacts.value.filter(c => c.has_conversation !== false);
+          const sorted = [...base].sort((a, b) => (b.spark_days || 0) - (a.spark_days || 0));
           const kw = searchKeyword.value.trim().toLowerCase();
           if (!kw) return sorted;
           return sorted.filter(c =>
@@ -1929,6 +1931,7 @@
           selectedFriendCount,
           sparkFriendCount,
           filteredContacts,
+          showAllContacts,
           searchKeyword,
           logsContent,
           syncing,

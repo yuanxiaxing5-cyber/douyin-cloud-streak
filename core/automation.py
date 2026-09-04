@@ -900,6 +900,8 @@ def fetch_chat_contacts(account_id: str | None = None) -> dict:
 
     api_names: list[dict] = []
     api_seen: set[str] = set()
+    uid_nick_map: dict[str, str] = {}
+    uid_avatar_map: dict[str, str] = {}
     im_hits: list[str] = []
     _user_info_keys_printed = {"done": False}
 
@@ -937,6 +939,29 @@ def fetch_chat_contacts(account_id: str | None = None) -> dict:
                 if not isinstance(item, dict):
                     continue
                 nick = _norm_name(item.get("remark_name") or item.get("nickname") or "")
+                uid_val = str(item.get("uid") or item.get("user_id") or "").strip()
+                if uid_val and nick:
+                    uid_nick_map[uid_val] = nick
+                # 收集真实头像URL（接口返回的 avatar_small / avatar_thumb 比 DOM 中默认 base64 占位图更可靠）
+                avatar_url = ""
+                for av_key in ("avatar_small", "avatar_thumb", "avatar_medium", "avatar_larger", "avatar"):
+                    av_val = item.get(av_key)
+                    if isinstance(av_val, str) and av_val.startswith("http"):
+                        avatar_url = av_val
+                        break
+                    if isinstance(av_val, dict):
+                        for url_key in ("url_list", "url", "src"):
+                            urls = av_val.get(url_key)
+                            if isinstance(urls, list) and urls:
+                                avatar_url = str(urls[0])
+                                break
+                            if isinstance(urls, str) and urls.startswith("http"):
+                                avatar_url = urls
+                                break
+                        if avatar_url:
+                            break
+                if uid_val and avatar_url:
+                    uid_avatar_map[uid_val] = avatar_url
                 if not nick or nick in api_seen:
                     continue
                 api_seen.add(nick)
@@ -1002,18 +1027,63 @@ def fetch_chat_contacts(account_id: str | None = None) -> dict:
                     except Exception:
                         pass
 
-            # 接口补充：DOM 漏掉的最新会话好友并入（去重）；DOM 有同名但火花为空的，
-            # 用接口探测到的火花值回填（接口字段比前端混淆类名稳定，最通用）。
+            # 接口火花回填：DOM 有同名但火花为空的，用接口探测到的火花值回填。
+            # 注意：不再新增用户，避免 im/user/info 接口返回的关注列表/推荐用户被误加入。
             if collected and api_names:
                 by_name = {c.get("name"): c for c in collected}
+                spark_filled = 0
                 for n in api_names:
                     cur = by_name.get(n.get("name"))
-                    if cur is None:
-                        collected.append(n)
-                    elif not cur.get("streak") and n.get("streak"):
+                    if cur is not None and not cur.get("streak") and n.get("streak"):
                         cur["streak"] = n.get("streak")
-                logger.info("接口补充 %s 条昵称（共 %s 条）", len(api_names) - sum(1 for n in api_names if n["name"] in by_name), len(collected))
+                        spark_filled += 1
+                if spark_filled:
+                    logger.info("接口火花回填 %s 条", spark_filled)
 
+            # 用接口收集的 uid->nickname / uid->avatar 映射补全数据
+            replaced = 0
+            avatar_fixed = 0
+            name_to_idx = {}
+            dedup_collected = []
+            for c in collected:
+                nm = str(c.get("name") or "").strip()
+                # 替换数字ID为真实昵称
+                if nm.isdigit() and nm in uid_nick_map:
+                    real_nick = uid_nick_map[nm]
+                    if real_nick:
+                        c["name"] = real_nick
+                        replaced += 1
+                # 用接口真实头像替换 base64 默认灰色占位图
+                cur_avatar = str(c.get("avatar") or "")
+                if cur_avatar.startswith("data:image"):
+                    # 先尝试用当前 name（可能已是昵称）反查 uid
+                    target_uid = None
+                    if nm.isdigit() and nm in uid_avatar_map:
+                        target_uid = nm
+                    else:
+                        for uid, nick in uid_nick_map.items():
+                            if nick == c.get("name") and uid in uid_avatar_map:
+                                target_uid = uid
+                                break
+                    if target_uid and target_uid in uid_avatar_map:
+                        c["avatar"] = uid_avatar_map[target_uid]
+                        avatar_fixed += 1
+                # 去重：同名条目合并，保留有火花/有真实头像的
+                cur_name = c.get("name")
+                if cur_name in name_to_idx:
+                    exist = dedup_collected[name_to_idx[cur_name]]
+                    if c.get("streak") and not exist.get("streak"):
+                        exist["streak"] = c["streak"]
+                    new_av = str(c.get("avatar") or "")
+                    old_av = str(exist.get("avatar") or "")
+                    if new_av.startswith("http") and not old_av.startswith("http"):
+                        exist["avatar"] = new_av
+                else:
+                    name_to_idx[cur_name] = len(dedup_collected)
+                    dedup_collected.append(c)
+            collected = dedup_collected
+            if replaced or avatar_fixed:
+                logger.info("已用接口数据补全：昵称替换 %s 个，头像修复 %s 个，去重后 %s 条", replaced, avatar_fixed, len(collected))
             result["names"] = collected
             logger.info("已读取聊天列表联系人 %s 个", len(result["names"]))
             if collected:

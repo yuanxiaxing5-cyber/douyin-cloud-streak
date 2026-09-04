@@ -126,16 +126,14 @@ def merge_consumer_contacts(contacts: list[dict], account_id: str | None = None)
     contacts = contacts or []
 
     def _resolve_avatar(c: dict) -> str:
-        """并发下载头像；无火花好友直接使用原链接不下载，大幅减轻并发封控压力。"""
+        """所有好友头像都下载到本地缓存，避免抖音CDN签名URL过期后头像失效。
+        本地已缓存则直接命中，不重复下载；并发数限制为4避免封控。"""
         avatar_url = c.get("avatar") or ""
         if not avatar_url:
             return ""
-            
-        streak = _parse_streak(c.get("streak"))
-        if streak == 0:
-            old = by_name_snapshot.get(str(c.get("name", "")).strip())
-            return (old.get("avatar") or avatar_url) if old else avatar_url
-
+        # base64 内嵌头像不下载
+        if avatar_url.startswith("data:image"):
+            return avatar_url
         new_avatar = fetch_and_save_avatar(avatar_url, account_id)
         if new_avatar:
             return new_avatar
@@ -144,7 +142,7 @@ def merge_consumer_contacts(contacts: list[dict], account_id: str | None = None)
 
     # 步骤二：耗时网络 IO（完全不阻塞 _lock，前端 api 可畅通无阻）
     import concurrent.futures
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         avatar_paths = list(pool.map(_resolve_avatar, contacts))
 
     # 步骤三：拿锁，重新加载最新台账进行原子级 upsert
@@ -185,6 +183,18 @@ def merge_consumer_contacts(contacts: list[dict], account_id: str | None = None)
                 added += 1
             else:
                 updated += 1
+
+        # 清理：本次同步未出现的 consumer 来源条目，标记为无会话（避免关注列表/已删除会话残留）
+        current_names = {str(c.get("name", "")).strip() for c in contacts if str(c.get("name", "")).strip()}
+        stale = 0
+        for e in entries:
+            ename = str(e.get("display_name", "")).strip()
+            is_consumer = e.get("source", {}).get("consumer") or e.get("channel") == "consumer"
+            if ename and ename not in current_names and is_consumer and e.get("has_conversation"):
+                e["has_conversation"] = False
+                stale += 1
+        if stale:
+            logger.info("已标记 %s 个不在当前私信列表的好友为无会话", stale)
 
         _save(entries, account_id)
         return {"added": added, "updated": updated, "total": len(entries)}

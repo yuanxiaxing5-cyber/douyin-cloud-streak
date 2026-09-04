@@ -203,6 +203,12 @@ def open_browser(state_path: Path | str | None = None, headless: bool = True, **
 
         yield p, browser, context, page
     finally:
+        # 关闭 context 和 page，避免内存泄漏（context 关闭会自动关闭其下所有 page）
+        try:
+            if 'context' in dir() and context:
+                context.close()
+        except Exception:
+            pass
         with _POOL_LOCK:
             if entry and entry.get("refs", 0) > 0:
                 entry["refs"] -= 1

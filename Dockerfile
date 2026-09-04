@@ -11,8 +11,8 @@ ENV TZ=Asia/Shanghai \
 
 # 国内镜像：USE_CN_MIRROR=1 时同时把 apt 源切到清华镜像（否则国内直连 deb.debian.org 易失败导致构建中断）
 RUN if [ "$USE_CN_MIRROR" = "1" ]; then \
-        sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
-        || sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
+        sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null \
+        || sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
     fi
 
 # 安装系统渲染依赖 + 中文字体（无字体会导致页面中文乱码/截图豆腐块）
@@ -41,7 +41,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 复制依赖清单并安装
 COPY requirements.txt .
 RUN if [ "$USE_CN_MIRROR" = "1" ]; then \
-        PIP_MIRROR="-i https://pypi.tuna.tsinghua.edu.cn/simple"; \
+        PIP_MIRROR="-i https://mirrors.aliyun.com/pypi/simple/"; \
         export PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright; \
     fi; \
     pip install --no-cache-dir $PIP_MIRROR -r requirements.txt && \
