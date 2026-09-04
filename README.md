@@ -1,14 +1,21 @@
 # Douyin Cloud Streak · 抖音云端自动续火花
 
-> 每天定时自动给抖音好友发消息，维持「火花 / 连续聊天天数」。Docker 一键部署，网页端管理，无需手动安装任何依赖。
+> 每天定时自动给抖音好友发消息，维持「火花 / 连续聊天天数」。Windows 本地静默运行仅占 **80MB 内存**，开机自启动，完全无窗口。
 
 ## ⚠️ 部署方式说明（重要）
 
-**本项目唯一推荐部署方式：Docker 容器化部署。**
+**本项目唯一推荐部署方式：Windows 本地静默运行。**
 
-Docker 镜像已内置全部运行环境（Python、Playwright、Chromium 浏览器、所有依赖库），**用户不需要在本地手动安装 Python、Playwright、浏览器或任何依赖**。只需安装 Docker Desktop，执行两条命令即可运行。
+| 方式 | 适用系统 | 内存占用 | 推荐度 |
+|------|----------|----------|--------|
+| **Windows 本地静默运行** | Windows 10/11 | ~80 MB | ⭐⭐⭐⭐⭐ 唯一推荐 |
 
-> ❌ **不要在本地手动执行 `pip install`、`playwright install`、`python app.py` 等命令**，这些是开发调试用的，普通用户直接用 Docker 部署即可。
+**优势**：
+- 内存占用极低（仅 80MB，Docker 方式约 2GB）
+- 完全静默运行，无控制台窗口闪烁
+- 支持开机自启动，登录后自动运行
+- 不需要 Docker Desktop、WSL2、虚拟机
+- 安装简单，AI 可一键完成部署
 
 ## 项目简介
 
@@ -18,7 +25,7 @@ Docker 镜像已内置全部运行环境（Python、Playwright、Chromium 浏览
 - 手机扫码登录，无需手动提取 Cookie
 - 多账号隔离管理
 
-## 技术栈（全部封装在 Docker 镜像内，无需本地安装）
+## 技术栈
 
 | 层级 | 技术 |
 |------|------|
@@ -26,7 +33,7 @@ Docker 镜像已内置全部运行环境（Python、Playwright、Chromium 浏览
 | 浏览器自动化 | Playwright (Chromium) + playwright-stealth |
 | 定时调度 | APScheduler |
 | 前端 | Vue 3 + Element Plus（静态文件，无需构建） |
-| 部署 | Docker + docker-compose |
+| 部署 | Windows 本地静默运行 + 任务计划开机自启 |
 | 数据存储 | 本地 JSON 文件（无数据库依赖） |
 
 ## 功能特性
@@ -40,132 +47,11 @@ Docker 镜像已内置全部运行环境（Python、Playwright、Chromium 浏览
 - ✅ **反风控设计**：单工作线程串行执行、全局浏览器并发上限、随机浮动时间、限流关键词检测
 - ✅ **失败自动补发**：发送失败的好友 45 分钟后自动补发一次
 
-## 快速开始（Docker 部署，唯一推荐方式）
+## 快速开始（Windows 本地静默运行，推荐）
 
-> ✅ **此方式无需手动安装 Python、Playwright、浏览器或任何依赖库**，全部已封装在 Docker 镜像中。只需安装 Docker Desktop，执行两条命令即可运行。
-
-### 前置要求（只需装一个 Docker Desktop）
-
-- **Windows / macOS**：安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（自带 Docker Engine 和 Docker Compose v2，安装后启动即可）
-- **Linux**：安装 Docker Engine 20.10+ 和 Docker Compose v2 插件
-- 国内网络环境建议配置 Docker 镜像加速器（见下方说明）
-
-> 💡 **Windows 用户提示**：安装 Docker Desktop 后，在开始菜单启动它，等待左下角显示 "Engine running" 后，在项目目录打开 PowerShell 执行下方命令即可。
+> ✅ **此方式是 Windows 用户的首选**：内存占用仅约 **80MB**，完全静默运行（无控制台窗口），支持开机自启动，不需要 Docker Desktop。
 >
-> ❌ **不需要**：安装 Python、安装 Playwright、下载浏览器、配置任何环境变量。
-
-### 部署步骤
-
-1. **克隆项目**
-
-```bash
-git clone https://github.com/Yuriz132/douyin-cloud-streak.git
-cd douyin-cloud-streak
-```
-
-2. **修改访问口令（重要）**
-
-编辑 `docker-compose.yml`，将 `AUTH_TOKEN` 的值改为你自己的安全口令：
-
-```yaml
-environment:
-  - AUTH_TOKEN=your_secure_token_here  # 改成你自己的
-```
-
-3. **构建并启动**
-
-在项目目录打开终端（Windows 用 PowerShell，Mac/Linux 用 Terminal），执行：
-
-```bash
-# 国内网络加加速参数构建（首次约 3-8 分钟，需下载 Playwright 浏览器）
-docker compose build --build-arg USE_CN_MIRROR=1
-
-# 后台启动容器
-docker compose up -d
-```
-
-> 💡 **Docker Desktop 用户**：构建和启动过程可以在 Docker Desktop 界面看到容器状态和日志，启动成功后容器状态为 "Running"。
-
-### 国内 Docker 镜像加速（可选但推荐）
-
-如果构建时拉取基础镜像慢或超时，配置 Docker 镜像加速器：
-
-**Docker Desktop（Windows/Mac）：**
-1. 打开 Docker Desktop → 右上角设置（齿轮图标）→ Docker Engine
-2. 在 JSON 配置中添加 `registry-mirrors`：
-
-```json
-{
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://mirror.baidubce.com"
-  ]
-}
-```
-
-3. 点击 "Apply & restart" 重启 Docker Desktop
-
-**Linux：**
-编辑 `/etc/docker/daemon.json`（没有就新建），写入上面的配置后执行 `systemctl restart docker`。
-
-4. **访问网页端**
-
-浏览器打开 `http://localhost:8000`（或服务器 IP:8000），输入刚才设置的口令。
-
-5. **扫码登录**
-
-进入「凭证」页面 → 点击「手机扫码登录」→ 用抖音 App 扫码。
-
-6. **同步并勾选好友**
-
-进入「好友」页面 → 点击「同步联系人」→ 勾选要续火花的好友 → 「保存勾选配置」。
-
-7. **设置发送时间和内容**
-
-进入「定时」页面 → 设置每日发送时间、随机浮动分钟、发送内容 → 保存。
-
-## 进阶：本地直接运行（不推荐，仅用于开发调试）
-
-> ⚠️ **警告：此方式仅用于开发者本地调试，普通用户请使用上方 Docker 部署方式。**
-> 
-> 此方式需要手动安装 Python、依赖库、Playwright 浏览器，环境配置复杂，容易出错。普通用户直接用 Docker 即可，无需安装任何东西。
-
-### 前置要求（开发者）
-
-- Python 3.11+
-- Windows / Linux / macOS
-- 熟悉 Python 环境配置
-
-### 运行步骤（开发者调试用）
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/Yuriz132/douyin-cloud-streak.git
-cd douyin-cloud-streak
-
-# 2. 安装依赖（国内建议用清华源）
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-
-# 3. 安装 Playwright 浏览器（必须，否则无法运行）
-playwright install chromium
-
-# 4. 设置访问口令（可选，默认无口令）
-# Windows:
-set AUTH_TOKEN=your_token
-# Linux/macOS:
-export AUTH_TOKEN=your_token
-
-# 5. 启动服务
-python app.py
-```
-
-访问 `http://localhost:8000`。
-
-## Windows 本地静默运行（低内存推荐）
-
-> 💡 **适用场景**：Windows 用户，内存紧张（如 8GB 以下），不想用 Docker（WSL2 约占 2GB 内存）。
->
-> 此方式内存占用仅约 **80MB**，完全静默运行，无控制台窗口，支持开机自启动。
+> ❌ **不需要**：安装 Docker Desktop、WSL2、虚拟机。
 
 ### 1. 安装 Python
 
@@ -320,7 +206,7 @@ douyin-cloud-streak/
 ### Q: 部署后完整的使用流程是什么？
 
 A: 按以下顺序操作：
-1. `docker compose build && docker compose up -d` 启动服务
+1. 双击 `start_silent.vbs` 静默启动服务（或配置开机自启动）
 2. 浏览器打开 `http://localhost:8000`，输入口令登录
 3. 「凭证」页 → 「手机扫码登录」→ 用抖音 App 扫码
 4. 「好友」页 → 点击「同步联系人」（**首次建议同步 2-3 次**，让系统收集完整的昵称和头像映射）
@@ -340,9 +226,13 @@ A: 系统会自动下载所有好友头像到本地缓存（避免抖音 CDN URL
 
 A: 已修复。系统现在只同步抖音私信会话列表里的好友，不会把关注的人加进来。前端默认只显示有私信会话的好友，如果想看全部，可以在好友列表顶部切换显示模式。
 
-### Q: 构建镜像时拉取基础镜像很慢或失败？
+### Q: 服务启动后访问不了 http://localhost:8000？
 
-A: 国内网络必须配置 Docker 镜像加速器，见上方「国内 Docker 镜像加速」章节。配置后重启 Docker Desktop 再重新构建。
+A: 按以下步骤排查：
+1. 确认 `start_silent.vbs` 已双击运行（任务管理器有 python.exe 进程）
+2. 确认端口 8000 没有被其他程序占用
+3. 检查 `data/logs/app.log` 日志文件看有没有报错
+4. 确认 Python 和依赖已正确安装（`venv\Scripts\python.exe --version`）
 
 ### Q: 登录态多久过期？
 
@@ -352,7 +242,7 @@ A: 抖音网页版登录态一般维持几天到几周，过期后在「凭证�
 
 ```bash
 git pull
-docker compose up -d --build
+# 然后任务管理器结束 python.exe 进程，再双击 start_silent.vbs 重启
 ```
 
 数据在 `data/` 目录，更新不会丢失。
